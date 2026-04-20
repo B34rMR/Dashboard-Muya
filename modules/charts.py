@@ -35,17 +35,22 @@ def graf01_evolucion_ventas(df_act, df_comp, filtros, metrica='vta_total'):
         if d.empty:
             return pd.DataFrame(columns=['mes', 'valor'])
         if metrica == 'vta_total':
-            g = d.groupby('mes')['VTA'].sum()
+            g = d.groupby('mes')['VTA'].sum().reset_index()
+            g.columns = ['mes', 'valor']
         elif metrica == 'vta_dduu':
-            g = d[d['Dsc_tipo_Serv'] == 'DERECHO DE USO'].groupby('mes')['VTA'].sum()
+            g = d[d['Dsc_tipo_Serv'] == 'DERECHO DE USO'].groupby('mes')['VTA'].sum().reset_index()
+            g.columns = ['mes', 'valor']
         elif metrica == 'contratos':
-            g = d.groupby('mes')['Localidad-Contrato-Num_ser'].nunique()
+            g = d.groupby('mes')['Localidad-Contrato-Num_ser'].nunique().reset_index()
+            g.columns = ['mes', 'valor']
         else:
-            dd = d[d['Dsc_tipo_Serv'] == 'DERECHO DE USO']
+            dd  = d[d['Dsc_tipo_Serv'] == 'DERECHO DE USO']
             vta = dd.groupby('mes')['VTA'].sum()
             cnt = dd.groupby('mes')['Localidad-Contrato-Num_ser'].nunique()
-            g   = (vta / cnt.replace(0, np.nan)).fillna(0)
-        return g.reset_index().rename(columns={g.name: 'valor'})
+            res = (vta / cnt.replace(0, np.nan)).fillna(0).reset_index()
+            res.columns = ['mes', 'valor']
+            g = res
+        return g
 
     d26 = agg(df_act)
     d25 = agg(df_comp)
@@ -66,9 +71,11 @@ def graf01_evolucion_ventas(df_act, df_comp, filtros, metrica='vta_total'):
                         line=dict(color=PRIMARIO, width=1.5)),
             fill='tozeroy', fillcolor=PRIMARIO_T,
         ))
-    fig.update_layout(**_layout())
-    fig.update_yaxis(tickformat=',.0f', gridcolor='#F0F2F5')
-    fig.update_layout(xaxis=dict(showgrid=False)
+    fig.update_layout(
+        **_layout(),
+        yaxis=dict(tickformat=',.0f', gridcolor='#F0F2F5'),
+        xaxis=dict(showgrid=False),
+    )
     return fig
 
 
@@ -91,9 +98,11 @@ def graf04_plazo_historico(df):
         textfont=dict(size=10),
     ))
     fig.update_layout(**_layout('Plazo medio (meses)', height=280))
-    fig.update_yaxis(range=[0, plazo['plazo'].max() * 1.25],
-                     showgrid=True, gridcolor='#F0F2F5')
-    fig.update_layout(xaxis=dict(showgrid=False)
+    ymax = float(plazo['plazo'].max()) * 1.25
+    fig.update_layout(
+        yaxis=dict(range=[0, ymax], showgrid=True, gridcolor='#F0F2F5'),
+        xaxis=dict(showgrid=False),
+    )
     return fig
 
 
@@ -117,8 +126,8 @@ def graf05_ventas_sede(df_act, df_comp, filtros):
         marker=dict(color=PRIMARIO),
     ))
     fig.update_layout(**_layout('Ventas por sede', height=320), barmode='group')
-    fig.update_yaxis(tickformat=',.0f', gridcolor='#F0F2F5')
-    fig.update_layout(xaxis=dict(showgrid=False)
+    fig.update_layout(yaxis=dict(tickformat=',.0f', gridcolor='#F0F2F5'))
+    fig.update_layout(xaxis=dict(showgrid=False))
     return fig
 
 
@@ -144,9 +153,11 @@ def graf06_canal(df_act, tipo_nec='TODOS'):
         hovertemplate='%{y}: %{x}% · S/ %{customdata:,.0f}<extra></extra>',
     ))
     fig.update_layout(**_layout('Participación por canal', height=260))
-    fig.update_layout(xaxis=dict(range=[0, canal_vta['pct'].max() * 1.25],
-                     showgrid=True, gridcolor='#F0F2F5')
-    fig.update_yaxis(showgrid=False)
+    xmax = float(canal_vta['pct'].max()) * 1.25
+    fig.update_layout(
+        xaxis=dict(range=[0, xmax], showgrid=True, gridcolor='#F0F2F5'),
+        yaxis=dict(showgrid=False),
+    )
     return fig
 
 
@@ -197,8 +208,8 @@ def graf08_ranking_jefes(df_act):
         hovertemplate='%{y}<br>VTA: S/ %{x:,.0f}<br>Contratos: %{customdata}<extra></extra>',
     ))
     fig.update_layout(**_layout('Ranking jefes · VTA DDUU', height=400))
-    fig.update_layout(xaxis=dict(tickformat=',.0f', showgrid=True, gridcolor='#F0F2F5')
-    fig.update_yaxis(showgrid=False)
+    fig.update_layout(xaxis=dict(tickformat=',.0f', showgrid=True, gridcolor='#F0F2F5'))
+    fig.update_layout(yaxis=dict(showgrid=False))
     return fig
 
 
@@ -226,6 +237,6 @@ def graf09_zonas(df_act, tipo_producto='Todos'):
         hovertemplate='%{x}: S/ %{y:,.0f}<extra></extra>',
     ))
     fig.update_layout(**_layout('Distribución por zona · DDUU', height=300))
-    fig.update_yaxis(tickformat=',.0f', showgrid=True, gridcolor='#F0F2F5')
-    fig.update_layout(xaxis=dict(showgrid=False)
+    fig.update_layout(yaxis=dict(tickformat=',.0f', showgrid=True, gridcolor='#F0F2F5'))
+    fig.update_layout(xaxis=dict(showgrid=False))
     return fig
