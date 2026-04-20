@@ -95,10 +95,10 @@ def graf04_plazo_historico(df):
     plazo.columns = ['anio', 'plazo']
     anio_max = plazo['anio'].max()
 
-    colors = [C['acento'] if a == anio_max else C['primario']+'99' for a in plazo['anio']]
+    colors = [C['acento'] if a == anio_max else '#1A2B3C99' for a in plazo['anio']]
     fig = go.Figure(go.Bar(
         x=plazo['anio'].astype(str), y=plazo['plazo'].round(1),
-        marker_color=colors, marker_line_width=0,
+        marker_color=colors,
         text=plazo['plazo'].round(1).astype(str) + 'm',
         textposition='outside', textfont=dict(size=10),
     ))
@@ -120,13 +120,13 @@ def graf05_ventas_sede(df_act, df_comp, filtros):
     fig = go.Figure()
     fig.add_trace(go.Bar(
         name=str(filtros['anio_comp']), x=merged['sede_cod'],
-        y=merged['VTA_comp'], marker_color=C['neutro']+'88',
-        marker_line_width=0,
+        y=merged['VTA_comp'], marker_color='#8E9AAF88',
+        
     ))
     fig.add_trace(go.Bar(
         name=str(filtros['anio']), x=merged['sede_cod'],
         y=merged['VTA_act'], marker_color=C['primario'],
-        marker_line_width=0,
+        
     ))
     fig.update_layout(**_base_layout('Ventas por sede', height=320), barmode='group')
     fig.update_yaxis(tickformat=',.0f', gridcolor='#F0F2F5')
@@ -155,7 +155,7 @@ def graf06_canal(df_act, tipo_nec='TODOS'):
 
     fig = go.Figure(go.Bar(
         x=canal_vta['pct'], y=canal_vta['canal_clean'],
-        orientation='h', marker_color=colors, marker_line_width=0,
+        orientation='h', marker_color=colors, 
         text=canal_vta['pct'].astype(str) + '%',
         textposition='outside', textfont=dict(size=10),
         customdata=canal_vta['VTA'],
@@ -184,11 +184,11 @@ def graf07_mix_nf_ni(df_act):
     fig = go.Figure()
     fig.add_trace(go.Bar(
         name='NI', x=pivot['pct_ni'], y=pivot['sede'],
-        orientation='h', marker_color=C['neutro']+'88', marker_line_width=0,
+        orientation='h', marker_color='#8E9AAF88', 
     ))
     fig.add_trace(go.Bar(
         name='NF', x=pivot['pct_nf'], y=pivot['sede'],
-        orientation='h', marker_color=C['primario'], marker_line_width=0,
+        orientation='h', marker_color=C['primario'], 
     ))
     fig.update_layout(
         **_base_layout('Mix NF / NI por sede', height=320),
@@ -213,7 +213,7 @@ def graf08_ranking_jefes(df_act, por_logro=False, metas_dduu=None):
     fig = go.Figure(go.Bar(
         x=rank['vta'], y=rank['dsc_jefeventas'],
         orientation='h',
-        marker_color=C['primario'], marker_line_width=0,
+        marker_color=C['primario'], 
         text=rank['vta'].apply(lambda v: f'S/ {v/1e6:.1f}M' if v >= 1e6 else f'S/ {v/1e3:.0f}K'),
         textposition='outside', textfont=dict(size=10),
         customdata=rank['contratos'],
@@ -244,7 +244,7 @@ def graf09_zonas(df_act, tipo_producto='Todos'):
 
     fig = go.Figure(go.Bar(
         x=zona_vta['zona'], y=zona_vta['vta'],
-        marker_color=colors, marker_line_width=0,
+        marker_color=colors, 
         text=zona_vta['vta'].apply(lambda v: f'S/ {v/1e6:.1f}M' if v >= 1e6 else f'S/ {v/1e3:.0f}K'),
         textposition='outside', textfont=dict(size=10),
         hovertemplate='%{x}: S/ %{y:,.0f}<extra></extra>',
