@@ -28,6 +28,10 @@ st.markdown("""
 [data-testid="stAppViewContainer"] { background: #F0F2F5; }
 [data-testid="stSidebar"] { background: #fff; }
 .block-container { padding-top: 1rem; }
+[data-testid="stMetricValue"] { color: #1A2B3C !important; }
+[data-testid="stMetricLabel"] { color: #8E9AAF !important; }
+[data-testid="stMarkdownContainer"] p { color: #1A2B3C; }
+h1, h2, h3 { color: #1A2B3C !important; }
 </style>
 """, unsafe_allow_html=True)
 
