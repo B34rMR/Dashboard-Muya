@@ -1,0 +1,31 @@
+empresa:
+  nombre: Grupo Muya
+  moneda: "S/"
+  logo: "assets/GM_Logotipo2401.jpg"
+
+periodo_default:
+  anio: 2026
+  meses: []
+
+alertas:
+  descuento_umbral: 0.05
+  descuento_critico: 0.10
+  cumplimiento_critico: 0.50
+  cumplimiento_alerta: 0.75
+  cumplimiento_ok: 1.00
+
+colores:
+  primario: "#1A2B3C"
+  acento: "#F5C842"
+  secundario: "#2D4A63"
+  neutro: "#8E9AAF"
+  positivo: "#34A853"
+  negativo: "#EA4335"
+  alerta: "#FBBC04"
+
+sedes:
+  agrupar_cusco: true
+  orden_display: [CUS, AQP, CIX, LAM, PIU, LUR, CNT, PIS, SAN, COR, CHM]
+
+tabla_operativa:
+  filas_por_pagina: 50
