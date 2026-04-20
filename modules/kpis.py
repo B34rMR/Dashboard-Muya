@@ -161,32 +161,41 @@ def calcular_kpis(df_act: pd.DataFrame, df_comp: pd.DataFrame,
 
 
 def _obtener_meta(metas: dict, filtros: dict) -> dict:
-    sede = filtros.get('sede', 'Todas')
-    mes = filtros.get('mes')
-    anio = filtros.get('anio')
-    canal = filtros.get('canal', 'Todos')
+    try:
+        sede = filtros.get('sede', 'Todas')
+        mes = filtros.get('mes')
+        anio = filtros.get('anio')
+        canal = filtros.get('canal', 'Todos')
 
-    sheet_key = 'TOTAL' if sede == 'Todas' else sede
-    if sheet_key not in metas:
+        sheet_key = 'TOTAL' if sede == 'Todas' else sede
+        if sheet_key not in metas:
+            return {}
+
+        df_m = metas[sheet_key]
+
+        # Verificar que las columnas necesarias existen
+        required = ['mes', 'anio', 'canal', 'vta_total', 'vta_dduu']
+        if not all(c in df_m.columns for c in required):
+            return {}
+
+        canal_key = canal if canal != 'Todos' else 'TODOS'
+
+        mask = (df_m['anio'] == anio) & (df_m['canal'] == canal_key)
+        if mes:
+            mask = mask & (df_m['mes'] == mes)
+
+        subset = df_m[mask]
+        if subset.empty:
+            return {}
+
+        return {
+            'vta_total': subset['vta_total'].sum(),
+            'vta_dduu':  subset['vta_dduu'].sum(),
+            'vta_ssff':  subset['vta_ssff'].sum() if 'vta_ssff' in subset.columns else 0,
+            'vta_ni':    subset['vta_ni'].sum()    if 'vta_ni'   in subset.columns else 0,
+        }
+    except Exception:
         return {}
-
-    df_m = metas[sheet_key]
-    canal_key = canal if canal != 'Todos' else 'TODOS'
-
-    mask = (df_m['anio'] == anio) & (df_m['canal'] == canal_key)
-    if mes:
-        mask = mask & (df_m['mes'] == mes)
-
-    subset = df_m[mask]
-    if subset.empty:
-        return {}
-
-    return {
-        'vta_total': subset['vta_total'].sum(),
-        'vta_dduu': subset['vta_dduu'].sum(),
-        'vta_ssff': subset['vta_ssff'].sum(),
-        'vta_ni': subset['vta_ni'].sum(),
-    }
 
 
 def color_semaforo(pct_logro: float, umbrales: dict) -> str:

@@ -144,6 +144,12 @@ def cargar_metas(ruta: str) -> dict:
     xl = pd.ExcelFile(ruta)
     metas = {}
     for sheet in xl.sheet_names:
-        df = pd.read_excel(ruta, sheet_name=sheet)
+        df = pd.read_excel(ruta, sheet_name=sheet, header=2)
+        df.columns = ['mes','anio','mes_nombre','canal','vta_total','vta_dduu','vta_ssff','vta_ni']
+        df = df[pd.to_numeric(df['mes'], errors='coerce').notna()].copy()
+        df['mes']  = df['mes'].astype(int)
+        df['anio'] = pd.to_numeric(df['anio'], errors='coerce').fillna(2026).astype(int)
+        for col in ['vta_total','vta_dduu','vta_ssff','vta_ni']:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
         metas[sheet] = df
     return metas
