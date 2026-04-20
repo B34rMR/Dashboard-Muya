@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 import yaml
 import os
+import sys
 
-# ---- Config página ----
 st.set_page_config(
     page_title='Grupo Muya · Dashboard',
     page_icon='📊',
@@ -11,465 +11,305 @@ st.set_page_config(
     initial_sidebar_state='expanded',
 )
 
-# ---- Estilos ----
-st.markdown("""
-<style>
-[data-testid="stAppViewContainer"] { background: #F0F2F5; }
-[data-testid="stSidebar"] { background: #fff; border-right: .5px solid #E2E5EA; }
-[data-testid="stSidebar"] .block-container { padding-top: 1rem; }
-.metric-card {
-    background: #fff; border: .5px solid #E2E5EA; border-radius: 12px;
-    padding: 14px 16px; height: 100%;
-}
-.metric-card.accent { border-top: 3px solid #F5C842; }
-.metric-card.normal { border-top: 3px solid #1A2B3C; }
-.metric-card.liq { border-top: 3px solid #2D4A63; }
-.metric-label { font-size: 11px; color: #8E9AAF; margin-bottom: 2px; }
-.metric-sub { font-size: 10px; color: #8E9AAF; margin-bottom: 8px; font-style: italic; }
-.metric-value { font-size: 22px; font-weight: 500; color: #1A2B3C; line-height: 1.1; margin-bottom: 6px; }
-.metric-var { font-size: 11px; display: flex; align-items: center; gap: 6px; }
-.badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
-.badge-up { background: #EAF3DE; color: #27500A; }
-.badge-down { background: #FCEBEB; color: #791F1F; }
-.badge-neutral { background: #F1EFE8; color: #444441; }
-.prog-track { height: 4px; border-radius: 2px; background: #E2E5EA; overflow: hidden; margin: 8px 0 4px; }
-.prog-fill { height: 100%; border-radius: 2px; transition: width .4s; }
-.tar-card {
-    background: #fff; border: .5px solid #E2E5EA;
-    border-left: 3px solid #8E9AAF; border-radius: 0 12px 12px 0;
-    padding: 14px 16px; height: 100%;
-}
-.tar-card.alerta { border-left-color: #EA4335; border-color: #EA4335; }
-.tar-card.liq { border-left-color: #2D4A63; }
-.section-header {
-    font-size: 11px; font-weight: 600; color: #8E9AAF;
-    text-transform: uppercase; letter-spacing: .07em;
-    padding-bottom: 6px; border-bottom: .5px solid #E2E5EA;
-    margin-bottom: 12px;
-}
-.level-header {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
-}
-.level-bar { width: 3px; height: 20px; background: #F5C842; border-radius: 2px; }
-.level-title { font-size: 11px; font-weight: 600; color: #1A2B3C; text-transform: uppercase; letter-spacing: .07em; }
-.level-sub { font-size: 11px; color: #8E9AAF; }
-.meta-pending { font-size: 10px; background: #FAEEDA; color: #633806; padding: 2px 10px; border-radius: 20px; }
-div[data-testid="stDataFrame"] { border-radius: 8px; overflow: hidden; }
-</style>
-""", unsafe_allow_html=True)
-
-# ---- Imports módulos ----
-import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from modules.loader import cargar_datos, cargar_metas
 from modules.filters import render_sidebar, aplicar_filtros
 from modules.kpis import calcular_kpis, color_semaforo
 from modules import charts, tables
 
-# ---- Cargar config ----
+# ---- Config ----
 with open('config.yaml') as f:
     cfg = yaml.safe_load(f)
-
 moneda = cfg['empresa']['moneda']
 
-# ---- Cargar datos ----
+# ---- CSS mínimo ----
+st.markdown("""
+<style>
+[data-testid="stAppViewContainer"] { background: #F0F2F5; }
+[data-testid="stSidebar"] { background: #fff; }
+.block-container { padding-top: 1rem; }
+</style>
+""", unsafe_allow_html=True)
+
+# ---- Datos ----
 with st.spinner('Cargando datos...'):
-    df = cargar_datos('data/DATA_ACTIVOS_2026.xlsx')
+    df    = cargar_datos('data/DATA_ACTIVOS_2026.xlsx')
     metas = cargar_metas('data/metas.xlsx')
 
-# ---- Sidebar / Filtros ----
+# ---- Sidebar ----
 with st.sidebar:
     try:
         st.image('assets/GM_Logotipo2401.jpg', width=160)
     except Exception:
-        st.markdown("### Grupo Muya")
-    st.markdown("---")
+        st.markdown('### Grupo Muya')
+    st.markdown('---')
 
-filtros = render_sidebar(df)
-df_act, df_comp = aplicar_filtros(df, filtros)
-kpis = calcular_kpis(df_act, df_comp, metas, filtros, cfg)
+filtros          = render_sidebar(df)
+df_act, df_comp  = aplicar_filtros(df, filtros)
+kpis             = calcular_kpis(df_act, df_comp, metas, filtros, cfg)
 
 # ---- HEADER ----
-col_h1, col_h2, col_h3 = st.columns([3, 2, 1])
-with col_h1:
-    periodo = f"{filtros['mes_lbl']} {filtros['anio']}" if filtros['mes'] else f"Ene–Dic {filtros['anio']}"
-    st.markdown(f"""
-    <div style='padding:8px 0;'>
-        <div style='font-size:18px;font-weight:500;color:#1A2B3C;'>Dashboard Comercial</div>
-        <div style='font-size:12px;color:#8E9AAF;'>{periodo} · vs mismo periodo {filtros['anio_comp']}</div>
-    </div>""", unsafe_allow_html=True)
-with col_h3:
-    st.markdown(f"""
-    <div style='text-align:right;padding-top:8px;'>
-        <div style='font-size:11px;color:#8E9AAF;'>Mostrando</div>
-        <div style='font-size:14px;font-weight:500;color:#1A2B3C;'>{kpis['n_contratos']:,} contratos</div>
-        <div style='font-size:10px;color:#8E9AAF;'>{kpis['n_lineas']:,} líneas</div>
-    </div>""", unsafe_allow_html=True)
+c1, c2, c3 = st.columns([3, 2, 1])
+with c1:
+    periodo = (f"{filtros['mes_lbl']} {filtros['anio']}"
+               if filtros['mes'] else f"Ene–Dic {filtros['anio']}")
+    st.markdown(f"## Dashboard Comercial")
+    st.caption(f"{periodo} · vs mismo periodo {filtros['anio_comp']}")
+with c3:
+    st.metric('Contratos', f"{kpis['n_contratos']:,}")
+    st.caption(f"{kpis['n_lineas']:,} líneas")
 
-st.markdown("---")
+st.divider()
 
 # ================================================================
 # NIVEL 1 — EJECUTIVO
 # ================================================================
-st.markdown("""<div class='level-header'>
-    <div class='level-bar'></div>
-    <span class='level-title'>Nivel 1 · Vista ejecutiva</span>
-</div>""", unsafe_allow_html=True)
+st.markdown('### Nivel 1 · Vista ejecutiva')
+st.caption('Fila A — KPIs principales')
 
-st.markdown("<div class='section-header'>Fila A — KPIs principales</div>", unsafe_allow_html=True)
-
-
-def badge_var(val, unit='%', pp=False):
-    if val is None:
-        return ''
+def var_str(val, pp=False):
+    if val is None: return ''
     sym = '▲' if val > 0 else '▼'
-    cls = 'badge-up' if val > 0 else 'badge-down'
-    label = f"{sym} {abs(val):.1f}{'pp' if pp else unit}"
-    return f"<span class='badge {cls}'>{label}</span>"
+    unit = 'pp' if pp else '%'
+    return f"{sym} {abs(val):.1f}{unit}"
 
-
-def progreso_html(actual, meta, umbrales):
+def meta_str(actual, meta):
     if not meta or meta == 0:
-        return "<div style='font-size:10px;color:#8E9AAF;margin-top:8px;'>Meta pendiente</div>"
-    pct = min(actual / meta * 100, 100)
-    color = color_semaforo(pct, umbrales)
-    return f"""
-    <div class='prog-track'>
-        <div class='prog-fill' style='width:{pct:.1f}%;background:{color};'></div>
-    </div>
-    <div style='display:flex;justify-content:space-between;'>
-        <span style='font-size:10px;color:#8E9AAF;'>{pct:.1f}% de meta</span>
-        <span style='font-size:10px;color:#8E9AAF;'>{moneda} {meta:,.0f}</span>
-    </div>"""
+        return 'Meta pendiente'
+    pct = actual / meta * 100
+    return f"{pct:.1f}% de meta · {moneda} {meta:,.0f}"
 
+# KPIs fila A
+k1, k2, k3, k4, k5, k6 = st.columns(6)
 
-cols_kpi = st.columns(6)
+with k1:
+    st.metric(
+        label='Ventas totales',
+        value=f"{moneda} {kpis['vta_total']/1e6:.2f}M",
+        delta=var_str(kpis['vta_total_var']),
+        help='Todas las líneas'
+    )
+    st.caption(meta_str(kpis['vta_total'], kpis['meta_vta']))
 
-# KPI-01
-with cols_kpi[0]:
-    st.markdown(f"""<div class='metric-card accent'>
-    <div class='metric-label'>Ventas totales</div>
-    <div class='metric-sub'>Todas las líneas</div>
-    <div class='metric-value'>{moneda} {kpis['vta_total']/1e6:.2f}M</div>
-    <div class='metric-var'>{badge_var(kpis['vta_total_var'])} <span style='font-size:10px;color:#8E9AAF;'>vs {filtros['anio_comp']}</span></div>
-    {progreso_html(kpis['vta_total'], kpis['meta_vta'], kpis)}
-    </div>""", unsafe_allow_html=True)
+with k2:
+    st.metric(
+        label='Ventas DDUU',
+        value=f"{moneda} {kpis['vta_dduu']/1e6:.2f}M",
+        delta=var_str(kpis['vta_dduu_var']),
+        help='Solo Derecho de Uso'
+    )
+    st.caption(meta_str(kpis['vta_dduu'], kpis['meta_dduu']))
 
-# KPI-02
-with cols_kpi[1]:
-    st.markdown(f"""<div class='metric-card normal'>
-    <div class='metric-label'>Ventas DDUU</div>
-    <div class='metric-sub'>Solo Derecho de Uso</div>
-    <div class='metric-value'>{moneda} {kpis['vta_dduu']/1e6:.2f}M</div>
-    <div class='metric-var'>{badge_var(kpis['vta_dduu_var'])} <span style='font-size:10px;color:#8E9AAF;'>vs {filtros['anio_comp']}</span></div>
-    {progreso_html(kpis['vta_dduu'], kpis['meta_dduu'], kpis)}
-    </div>""", unsafe_allow_html=True)
+with k3:
+    st.metric(
+        label='Contratos únicos',
+        value=f"{kpis['contratos']:,}",
+        delta=var_str(kpis['contratos_var']),
+    )
+    st.caption(meta_str(kpis['contratos'], kpis['meta_contratos']))
 
-# KPI-03
-with cols_kpi[2]:
-    st.markdown(f"""<div class='metric-card normal'>
-    <div class='metric-label'>Contratos</div>
-    <div class='metric-sub'>Contratos únicos</div>
-    <div class='metric-value'>{kpis['contratos']:,}</div>
-    <div class='metric-var'>{badge_var(kpis['contratos_var'])} <span style='font-size:10px;color:#8E9AAF;'>vs {filtros['anio_comp']}</span></div>
-    {progreso_html(kpis['contratos'], kpis['meta_contratos'], kpis)}
-    </div>""", unsafe_allow_html=True)
+with k4:
+    st.metric(
+        label='Precio medio DDUU',
+        value=f"{moneda} {kpis['precio_medio']:,.0f}",
+        delta=var_str(kpis['precio_medio_var']),
+    )
+    st.caption(meta_str(kpis['precio_medio'], kpis['meta_pm']))
 
-# KPI-04
-with cols_kpi[3]:
-    st.markdown(f"""<div class='metric-card normal'>
-    <div class='metric-label'>Precio medio</div>
-    <div class='metric-sub'>DDUU únicamente</div>
-    <div class='metric-value'>{moneda} {kpis['precio_medio']:,.0f}</div>
-    <div class='metric-var'>{badge_var(kpis['precio_medio_var'])} <span style='font-size:10px;color:#8E9AAF;'>vs {filtros['anio_comp']}</span></div>
-    {progreso_html(kpis['precio_medio'], kpis['meta_pm'], kpis)}
-    </div>""", unsafe_allow_html=True)
+with k5:
+    st.metric(
+        label='% Inicial real',
+        value=f"{kpis['pct_inicial']:.1f}%",
+        delta=var_str(kpis['pct_inicial_var'], pp=True),
+        help='SUM(CUI_PAGADA) / SUM(VTA)'
+    )
+    st.caption(meta_str(kpis['pct_inicial'], kpis['meta_ini']))
 
-# KPI-05
-with cols_kpi[4]:
-    st.markdown(f"""<div class='metric-card normal'>
-    <div class='metric-label'>% Inicial real</div>
-    <div class='metric-sub'>CUI pagada / Venta</div>
-    <div class='metric-value'>{kpis['pct_inicial']:.1f}%</div>
-    <div class='metric-var'>{badge_var(kpis['pct_inicial_var'], pp=True)} <span style='font-size:10px;color:#8E9AAF;'>vs {filtros['anio_comp']}</span></div>
-    {progreso_html(kpis['pct_inicial'], kpis['meta_ini'] if kpis['meta_ini'] else None, kpis)}
-    </div>""", unsafe_allow_html=True)
-
-# KPI-06 (% Logro — solo si hay meta)
-with cols_kpi[5]:
+with k6:
     if kpis['pct_logro_dduu'] is not None:
-        logro = kpis['pct_logro_dduu']
-        color_logro = color_semaforo(logro, kpis)
-        st.markdown(f"""<div class='metric-card normal'>
-        <div class='metric-label'>% Logro DDUU</div>
-        <div class='metric-sub'>Avance sobre meta</div>
-        <div class='metric-value' style='color:{color_logro};'>{logro:.1f}%</div>
-        <div class='metric-var'><span style='font-size:11px;color:{color_logro};font-weight:500;'>{"✓ En meta" if logro >= 75 else "⚠ Atención" if logro >= 50 else "✗ Crítico"}</span></div>
-        {progreso_html(kpis['vta_dduu'], kpis['meta_dduu'], kpis)}
-        </div>""", unsafe_allow_html=True)
+        st.metric(
+            label='% Logro DDUU',
+            value=f"{kpis['pct_logro_dduu']:.1f}%",
+            delta='✓ En meta' if kpis['pct_logro_dduu'] >= 75
+                  else '⚠ Atención' if kpis['pct_logro_dduu'] >= 50 else '✗ Crítico',
+        )
     else:
-        st.markdown("""<div class='metric-card' style='border-top:3px dashed #E2E5EA;background:#F8F9FA;
-            display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:120px;'>
-            <div style='font-size:11px;color:#8E9AAF;text-align:center;'>% Logro DDUU</div>
-            <div style='font-size:11px;color:#8E9AAF;text-align:center;margin-top:6px;'>Se activa al cargar<br>meta DDUU</div>
-        </div>""", unsafe_allow_html=True)
+        st.info('% Logro DDUU\nSe activa al cargar meta')
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown('---')
+st.caption('Fila B — Tarjetas de contexto')
 
-# ---- FILA B: TARJETAS ----
-st.markdown("<div class='section-header'>Fila B — Tarjetas de contexto</div>", unsafe_allow_html=True)
-cols_tar = st.columns(5)
+t1, t2, t3, t4, t5 = st.columns(5)
 
-# TAR-01: Descuento
-with cols_tar[0]:
-    dscto_alerta = kpis['dscto_pct'] > kpis['dscto_critico']
-    dscto_warn = kpis['dscto_pct'] > kpis['dscto_umbral']
-    cls = 'alerta' if dscto_alerta else ''
-    color_d = '#EA4335' if dscto_alerta else '#FBBC04' if dscto_warn else '#8E9AAF'
-    msg = '⚠ Supera umbral crítico' if dscto_alerta else '⚠ Supera umbral' if dscto_warn else 'Dentro de umbral'
-    st.markdown(f"""<div class='tar-card {cls}' style='border-left-color:{color_d};'>
-    <div class='metric-label' style='color:{color_d};font-weight:500;'>Descuento aplicado</div>
-    <div class='metric-value' style='font-size:18px;color:{color_d};'>{moneda} {kpis['dscto_monto']:,.0f}</div>
-    <div style='font-size:12px;color:#8E9AAF;'>{kpis['dscto_pct']:.1f}% sobre VTA total</div>
-    <div style='font-size:10px;color:{color_d};margin-top:6px;'>{msg}</div>
-    </div>""", unsafe_allow_html=True)
+with t1:
+    alerta = '🔴' if kpis['dscto_pct'] > kpis['dscto_critico'] else '🟡' if kpis['dscto_pct'] > kpis['dscto_umbral'] else '🟢'
+    st.metric('Descuento aplicado',
+              f"{moneda} {kpis['dscto_monto']:,.0f}",
+              f"{alerta} {kpis['dscto_pct']:.1f}% sobre VTA")
 
-# TAR-02: Carencia
-with cols_tar[1]:
-    cls = 'alerta' if kpis['carencia_no'] > 0 else ''
-    color_c = '#EA4335' if kpis['carencia_no'] > 0 else '#34A853'
-    st.markdown(f"""<div class='tar-card {cls}' style='border-left-color:{color_c};'>
-    <div class='metric-label' style='color:{color_c};font-weight:500;'>Sin carencia</div>
-    <div class='metric-value' style='font-size:18px;color:{color_c};'>{kpis['carencia_no']} contrato{'s' if kpis['carencia_no']!=1 else ''}</div>
-    <div style='font-size:12px;color:#8E9AAF;'>{kpis['carencia_pct']:.2f}% sobre total</div>
-    </div>""", unsafe_allow_html=True)
+with t2:
+    color = '🔴' if kpis['carencia_no'] > 0 else '🟢'
+    st.metric('Sin carencia',
+              f"{kpis['carencia_no']} contrato{'s' if kpis['carencia_no'] != 1 else ''}",
+              f"{color} {kpis['carencia_pct']:.2f}% del total")
 
-# TAR-03: CUI partida
-with cols_tar[2]:
-    st.markdown(f"""<div class='tar-card'>
-    <div class='metric-label'>CUI partida</div>
-    <div class='metric-value' style='font-size:18px;'>{kpis['cui_count']} contratos</div>
-    <div style='font-size:12px;color:#8E9AAF;'>{moneda} {kpis['cui_vta']:,.0f} VTA</div>
-    <div style='font-size:10px;color:#8E9AAF;margin-top:4px;'>{kpis['cui_pct_c']:.1f}% contratos · {kpis['cui_pct_v']:.1f}% VTA</div>
-    </div>""", unsafe_allow_html=True)
+with t3:
+    st.metric('CUI partida',
+              f"{kpis['cui_count']} contratos",
+              f"{moneda} {kpis['cui_vta']:,.0f} VTA")
+    st.caption(f"{kpis['cui_pct_c']:.1f}% ctr · {kpis['cui_pct_v']:.1f}% VTA")
 
-# TAR-04: Financiamiento
-with cols_tar[3]:
-    plazo_color = '#EA4335' if kpis['plazo_medio'] > kpis['meta_plazo'] and kpis['meta_plazo'] else '#1A2B3C'
-    st.markdown(f"""<div class='tar-card'>
-    <div class='metric-label'>Financiamiento</div>
-    <div class='metric-value' style='font-size:18px;color:{plazo_color};'>{kpis['plazo_medio']:.1f} meses</div>
-    <div style='font-size:12px;color:#8E9AAF;'>plazo medio</div>
-    <div style='font-size:10px;color:#8E9AAF;margin-top:4px;font-style:italic;'>imp_cuota es referencial · no refleja caja real</div>
-    </div>""", unsafe_allow_html=True)
+with t4:
+    st.metric('Financiamiento',
+              f"{kpis['plazo_medio']:.1f} meses",
+              'plazo medio')
+    st.caption('imp_cuota es referencial — no es caja real')
 
-# TAR-05: Liquidez
-with cols_tar[4]:
+with t5:
     var_liq = kpis['liquidez_pct_var']
-    st.markdown(f"""<div class='tar-card liq'>
-    <div class='metric-label' style='color:#2D4A63;font-weight:500;'>Liquidez del periodo</div>
-    <div style='display:flex;align-items:baseline;gap:8px;'>
-        <div class='metric-value' style='font-size:17px;color:#2D4A63;'>{moneda} {kpis['liquidez_monto']:,.0f}</div>
-        <span style='font-size:16px;font-weight:500;color:#2D4A63;'>{kpis['liquidez_pct']:.1f}%</span>
-    </div>
-    <div style='font-size:11px;color:#8E9AAF;'>caja real sobre VTA total</div>
-    <div class='prog-track'><div class='prog-fill' style='width:{min(kpis["liquidez_pct"],100):.1f}%;background:#2D4A63;'></div></div>
-    <div style='font-size:10px;color:#8E9AAF;'>CUI: {kpis['liquidez_cui_pct']:.1f}% · Contado: {kpis['liquidez_cnt_pct']:.1f}%</div>
-    <div style='margin-top:6px;'>{badge_var(var_liq, pp=True)} <span style='font-size:10px;color:#8E9AAF;'>vs {filtros['anio_comp']}</span></div>
-    </div>""", unsafe_allow_html=True)
+    sym = '▲' if var_liq > 0 else '▼'
+    st.metric('Liquidez del periodo',
+              f"{moneda} {kpis['liquidez_monto']:,.0f}",
+              f"{sym} {abs(var_liq):.1f}pp vs {filtros['anio_comp']}")
+    st.caption(f"{kpis['liquidez_pct']:.1f}% caja real · "
+               f"CUI {kpis['liquidez_cui_pct']:.1f}% · "
+               f"Ctdo {kpis['liquidez_cnt_pct']:.1f}%")
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown('---')
+st.caption('Fila C — Mix rápido')
 
-# ---- FILA C: MIX ----
-st.markdown("<div class='section-header'>Fila C — Mix rápido</div>", unsafe_allow_html=True)
-cols_mix = st.columns(3)
+m1, m2, m3 = st.columns(3)
+with m1:
+    st.metric('Mix NF / NI',
+              f"NF {kpis['pct_nf']:.1f}%",
+              f"NI {kpis['pct_ni']:.1f}%")
+with m2:
+    st.metric('% Integrales',
+              f"{kpis['pct_integrales']:.1f}%",
+              'de contratos DDUU')
+with m3:
+    if filtros['sede'] in ('Todas', 'PIU', 'LUR'):
+        st.metric('Serv. Inhumación',
+                  f"{kpis['inh_count']} contratos",
+                  f"{moneda} {kpis['inh_vta']:,.0f} · PIU/LUR")
 
-with cols_mix[0]:
-    st.markdown(f"""<div class='metric-card' style='border:0.5px solid #E2E5EA;'>
-    <div style='font-size:10px;color:#8E9AAF;font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;'>Mix NF / NI</div>
-    <div style='display:flex;align-items:center;gap:8px;'>
-        <div style='flex:1;text-align:center;'>
-            <div style='font-size:22px;font-weight:500;color:#1A2B3C;'>{kpis['pct_nf']:.1f}%</div>
-            <div style='font-size:11px;color:#8E9AAF;'>NF</div>
-        </div>
-        <div style='width:1px;background:#E2E5EA;height:40px;'></div>
-        <div style='flex:1;text-align:center;'>
-            <div style='font-size:22px;font-weight:500;color:#8E9AAF;'>{kpis['pct_ni']:.1f}%</div>
-            <div style='font-size:11px;color:#8E9AAF;'>NI</div>
-        </div>
-    </div>
-    <div class='prog-track' style='height:6px;border-radius:3px;margin-top:12px;'>
-        <div class='prog-fill' style='width:{kpis["pct_nf"]:.1f}%;background:#1A2B3C;border-radius:3px;'></div>
-    </div>
-    </div>""", unsafe_allow_html=True)
-
-with cols_mix[1]:
-    st.markdown(f"""<div class='metric-card' style='border:0.5px solid #E2E5EA;'>
-    <div style='font-size:10px;color:#8E9AAF;font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;'>% Integrales</div>
-    <div style='font-size:22px;font-weight:500;color:#1A2B3C;'>{kpis['pct_integrales']:.1f}%</div>
-    <div style='font-size:11px;color:#8E9AAF;margin-top:4px;'>de contratos DDUU son integrales</div>
-    </div>""", unsafe_allow_html=True)
-
-with cols_mix[2]:
-    sede_sel = filtros['sede']
-    mostrar_inh = sede_sel in ('Todas', 'PIU', 'LUR')
-    if mostrar_inh:
-        st.markdown(f"""<div class='metric-card' style='border:0.5px solid #E2E5EA;'>
-        <div style='font-size:10px;color:#8E9AAF;font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;'>Serv. Inhumación · PIU / LUR</div>
-        <div style='font-size:22px;font-weight:500;color:#1A2B3C;'>{kpis['inh_count']}</div>
-        <div style='font-size:11px;color:#8E9AAF;margin-top:4px;'>contratos · {moneda} {kpis['inh_vta']:,.0f}</div>
-        </div>""", unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-st.markdown("---")
+st.divider()
 
 # ================================================================
 # NIVEL 2 — ANALÍTICO
 # ================================================================
-st.markdown("""<div class='level-header'>
-    <div class='level-bar'></div>
-    <span class='level-title'>Nivel 2 · Vista analítica</span>
-</div>""", unsafe_allow_html=True)
+st.markdown('### Nivel 2 · Vista analítica')
 
-# --- Sección A: Evolución temporal ---
-st.markdown("<div class='section-header'>Sección A — Evolución temporal</div>", unsafe_allow_html=True)
-
-metrica_opts = {'VTA Total': 'vta_total', 'VTA DDUU': 'vta_dduu', 'Contratos': 'contratos', 'Precio Medio': 'precio_medio'}
-metrica_sel = st.radio('Ver en gráfico de líneas:', list(metrica_opts.keys()), horizontal=True, key='metrica_evol')
+st.caption('Sección A — Evolución temporal')
+metrica_opts = {
+    'VTA Total': 'vta_total',
+    'VTA DDUU': 'vta_dduu',
+    'Contratos': 'contratos',
+    'Precio Medio': 'precio_medio'
+}
+metrica_sel = st.radio('Ver:', list(metrica_opts.keys()), horizontal=True)
 
 col_g1, col_g2 = st.columns([2, 1])
 with col_g1:
-    fig01 = charts.graf01_evolucion_ventas(df_act, df_comp, filtros, metrica_opts[metrica_sel])
-    st.plotly_chart(fig01, use_container_width=True)
+    st.plotly_chart(
+        charts.graf01_evolucion_ventas(df_act, df_comp, filtros, metrica_opts[metrica_sel]),
+        use_container_width=True
+    )
 with col_g2:
-    fig04 = charts.graf04_plazo_historico(df)
-    st.plotly_chart(fig04, use_container_width=True)
+    st.plotly_chart(
+        charts.graf04_plazo_historico(df),
+        use_container_width=True
+    )
 
-# --- Sección B: Comparativas ---
-st.markdown("<div class='section-header'>Sección B — Comparativas</div>", unsafe_allow_html=True)
+st.caption('Sección B — Comparativas')
 
 col_g5, col_g6 = st.columns(2)
 with col_g5:
-    fig05 = charts.graf05_ventas_sede(df_act, df_comp, filtros)
-    st.plotly_chart(fig05, use_container_width=True)
+    st.plotly_chart(charts.graf05_ventas_sede(df_act, df_comp, filtros),
+                    use_container_width=True)
 with col_g6:
-    tn_canal = st.radio('Tipo necesidad:', ['TODOS', 'NF', 'NI'], horizontal=True, key='tn_canal')
-    fig06 = charts.graf06_canal(df_act, tn_canal)
-    st.plotly_chart(fig06, use_container_width=True)
+    tn_canal = st.radio('Tipo necesidad:', ['TODOS', 'NF', 'NI'],
+                        horizontal=True, key='tn_canal')
+    st.plotly_chart(charts.graf06_canal(df_act, tn_canal),
+                    use_container_width=True)
 
 col_g7, col_g9 = st.columns(2)
 with col_g7:
-    fig07 = charts.graf07_mix_nf_ni(df_act)
-    st.plotly_chart(fig07, use_container_width=True)
+    st.plotly_chart(charts.graf07_mix_nf_ni(df_act), use_container_width=True)
 with col_g9:
-    tipo_zona = st.selectbox('Producto:', ['Todos', 'SEPULTURA', 'NICHO', 'CREMACION'], key='tipo_zona')
-    fig09 = charts.graf09_zonas(df_act, tipo_zona)
-    st.plotly_chart(fig09, use_container_width=True)
+    tipo_zona = st.selectbox('Producto:', ['Todos', 'SEPULTURA', 'NICHO', 'CREMACION'])
+    st.plotly_chart(charts.graf09_zonas(df_act, tipo_zona), use_container_width=True)
 
-# --- GRAF-08: Ranking jefes ---
-st.markdown("<div class='section-header'>Ranking jefes de ventas — DDUU</div>", unsafe_allow_html=True)
-fig08 = charts.graf08_ranking_jefes(df_act)
-st.plotly_chart(fig08, use_container_width=True)
+st.plotly_chart(charts.graf08_ranking_jefes(df_act), use_container_width=True)
 
-st.markdown("---")
+st.divider()
 
 # ================================================================
 # NIVEL 3 — OPERATIVO
 # ================================================================
-st.markdown("""<div class='level-header'>
-    <div class='level-bar'></div>
-    <span class='level-title'>Nivel 3 · Vista operativa</span>
-</div>""", unsafe_allow_html=True)
+st.markdown('### Nivel 3 · Vista operativa')
 
-# --- Tabla 7.4: Por tipo de producto ---
-st.markdown("<div class='section-header'>Tabla 7.4 — Análisis por tipo de producto</div>", unsafe_allow_html=True)
-
+# Tabla 7.4
+st.caption('Tabla 7.4 — Por tipo de producto')
 df74, subtipos = tables.tabla_tipo_producto(df_act)
 if not df74.empty:
-    tipo_sel = st.selectbox('Ver desglose de:', df74['Tipo'].tolist(), key='tipo74')
-    col_74a, col_74b = st.columns([1, 2])
-    with col_74a:
-        st.dataframe(
-            df74[['Tipo', 'Contratos', 'VTA Total', 'Precio Medio', '% VTA']],
-            hide_index=True, use_container_width=True,
-        )
-    with col_74b:
+    col_a, col_b = st.columns([1, 2])
+    with col_a:
+        tipo_sel = st.selectbox('Ver desglose:', df74['Tipo'].tolist())
+        st.dataframe(df74[['Tipo','Contratos','VTA Total','Precio Medio','% VTA']],
+                     hide_index=True, use_container_width=True)
+    with col_b:
         if tipo_sel in subtipos:
-            sub_df = subtipos[tipo_sel]
-            sub_disp = sub_df[['Subtipo', 'vta_sub', 'cont_sub', 'pm', 'pct']].copy()
-            sub_disp.columns = ['Subtipo', 'VTA', 'Contratos', 'PM', '% dentro']
+            sub = subtipos[tipo_sel].copy()
+            sub_disp = sub[['Subtipo','vta_sub','cont_sub','pm','pct']].copy()
+            sub_disp.columns = ['Subtipo','VTA','Contratos','PM','% dentro']
             sub_disp['VTA'] = sub_disp['VTA'].apply(lambda v: f"S/ {v:,.0f}")
-            sub_disp['PM'] = sub_disp['PM'].apply(lambda v: f"S/ {v:,.0f}")
+            sub_disp['PM']  = sub_disp['PM'].apply(lambda v: f"S/ {v:,.0f}")
             sub_disp['% dentro'] = sub_disp['% dentro'].apply(lambda v: f"{v:.1f}%")
             st.dataframe(sub_disp, hide_index=True, use_container_width=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown('---')
 
-# --- Tabla 7.3: Detalle contratos ---
-st.markdown("<div class='section-header'>Tabla 7.3 — Detalle de contratos</div>", unsafe_allow_html=True)
-
-col_f1, col_f2, col_f3, col_f4 = st.columns(4)
-with col_f1:
-    filt_linea = st.selectbox('Tipo línea', ['Todos', 'DDUU', 'SSFF', 'Serv. Inh.'], key='f_linea')
-with col_f2:
-    filt_tn = st.selectbox('Tipo necesidad', ['Todos', 'NF', 'NI'], key='f_tn')
-with col_f3:
-    filt_pago = st.selectbox('Modalidad pago', ['Todos', 'FINANCIADO', 'CONTADO'], key='f_pago')
-with col_f4:
-    busqueda = st.text_input('Buscar contrato / vendedor', placeholder='Ej: J. GARCIA o 00001-...', key='busq')
+# Tabla 7.3
+st.caption('Tabla 7.3 — Detalle de contratos')
+fc1, fc2, fc3, fc4 = st.columns(4)
+with fc1:
+    f_linea = st.selectbox('Tipo línea', ['Todos','DDUU','SSFF','Serv. Inh.'])
+with fc2:
+    f_tn    = st.selectbox('Tipo necesidad', ['Todos','NF','NI'])
+with fc3:
+    f_pago  = st.selectbox('Pago', ['Todos','FINANCIADO','CONTADO'])
+with fc4:
+    busq    = st.text_input('Buscar contrato / vendedor', placeholder='Ej: J. GARCIA')
 
 df73 = df_act.copy()
-if filt_linea != 'Todos':
-    df73 = df73[df73['tipo_linea'] == filt_linea]
-if filt_tn != 'Todos':
-    df73 = df73[df73['cod_tipo_necesidad'] == filt_tn]
-if filt_pago != 'Todos':
-    df73 = df73[df73['tipo_pago'] == filt_pago]
-if busqueda:
-    b = busqueda.upper()
+if f_linea != 'Todos': df73 = df73[df73['tipo_linea'] == f_linea]
+if f_tn    != 'Todos': df73 = df73[df73['cod_tipo_necesidad'] == f_tn]
+if f_pago  != 'Todos': df73 = df73[df73['tipo_pago'] == f_pago]
+if busq:
+    b = busq.upper()
     df73 = df73[
         df73['Localidad-Contrato-Num_ser'].astype(str).str.upper().str.contains(b, na=False) |
         df73['dsc_vendedor'].astype(str).str.upper().str.contains(b, na=False) |
         df73['sede_cod'].astype(str).str.upper().str.contains(b, na=False)
     ]
 
-st.caption(f"Mostrando {len(df73):,} registros · Ordenados por fecha desc")
+st.caption(f"Mostrando {len(df73):,} registros · ordenados por fecha desc")
 
 df73_disp = tables.tabla_contratos(
     df73.sort_values('fecha_venta', ascending=False), cfg
 )
 
-# Highlight carencia NO PASO
-def highlight_carencia(row):
-    if 'Carencia' in row.index and row['Carencia'] == 'NO PASO':
-        return ['background-color: #FFF0F0'] * len(row)
-    return [''] * len(row)
+pg = cfg['tabla_operativa']['filas_por_pagina']
+st.dataframe(df73_disp.head(pg), hide_index=True,
+             use_container_width=True,
+             height=min(len(df73_disp.head(pg)) * 35 + 50, 600))
 
-filas_pg = cfg['tabla_operativa']['filas_por_pagina']
-st.dataframe(
-    df73_disp.head(filas_pg),
-    hide_index=True,
-    use_container_width=True,
-    height=min(len(df73_disp.head(filas_pg)) * 35 + 50, 600),
-)
+if len(df73_disp) > pg:
+    st.caption(f"Mostrando primeros {pg} de {len(df73_disp):,}. Exporta para ver todos.")
 
-if len(df73_disp) > filas_pg:
-    st.caption(f"Mostrando primeros {filas_pg} de {len(df73_disp):,} registros. Exporta para ver todos.")
+csv = df73_disp.to_csv(index=False).encode('utf-8-sig')
+st.download_button('Exportar CSV', data=csv,
+                   file_name=f"muya_{filtros['anio']}.csv", mime='text/csv')
 
-col_exp1, col_exp2 = st.columns([1, 5])
-with col_exp1:
-    csv = df73_disp.to_csv(index=False).encode('utf-8-sig')
-    st.download_button(
-        label='Exportar CSV',
-        data=csv,
-        file_name=f'muya_contratos_{filtros["anio"]}.csv',
-        mime='text/csv',
-    )
-
-st.markdown("<br>", unsafe_allow_html=True)
-st.markdown(
-    "<div style='text-align:center;font-size:10px;color:#8E9AAF;padding:12px 0;'>"
-    "Grupo Muya · Dashboard Comercial · Datos: DATA_ACTIVOS_2026.xlsx · Metas: metas.xlsx"
-    "</div>",
-    unsafe_allow_html=True,
-)
+st.caption('Grupo Muya · Dashboard Comercial · DATA_ACTIVOS_2026.xlsx')
