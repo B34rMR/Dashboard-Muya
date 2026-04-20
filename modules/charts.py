@@ -75,7 +75,7 @@ def graf01_evolucion_ventas(df_act, df_comp, filtros, metrica='vta_total'):
             name=str(anio), mode='lines+markers',
             line=dict(color=C['primario'], width=2.5),
             marker=dict(size=7, color=C['acento'], line=dict(color=C['primario'], width=1.5)),
-            fill='tozeroy', fillcolor=C['primario']+'15',
+            fill='tozeroy', fillcolor='rgba(26,43,60,0.08)',
         ))
 
     fmt = 'S/ {:,.0f}' if unidad == 'S/' or unidad == 'VTA' else '{:,.0f}'
